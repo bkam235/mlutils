@@ -17,4 +17,9 @@ Imports:
     purrr,
     ggplot2,
     forcats,
-    data.table  
+    data.table,
+    gtools,
+    future,
+    furrr,
+    glue,
+    ggrepel
