@@ -1,10 +1,14 @@
+#' Table to evaluate feature informativeness
+#'
+#' @export
+#'
 #' @import data.table
 #' @import purrr
-#' @import ggplot2
-#' @import forcats
-#' @import magrittr
+#'
+#' @param data abc
+#' @param target_var abc
 
-get_all_variances <- function(data, target_var){
+tabulate_signal <- function(data, target_var){
   variance <- NULL
 
   if(class(data[[target_var]]) == "factor"){
@@ -32,25 +36,4 @@ get_all_variances <- function(data, target_var){
                        variance = flatten_dbl(var_result))
   var_dt <- var_dt[order(variance, decreasing = TRUE), ]
   return(var_dt)
-}
-
-plot_single_variances <- function(data, target_var, top_n = 20){
-  name <- NULL
-
-  if(top_n > (ncol(data) - 1)){top_n <- (ncol(data) - 1)}
-
-  result <- get_all_variances(data, target_var)
-  result[, name := as.factor(name)]
-  result$name <- fct_reorder(result$name, result$variance)
-  p <- ggplot(result[1:top_n, ], aes_string(x = "name", y = "variance")) +
-    geom_segment(aes_string(x = "name",
-                     xend = "name",
-                     y = 0,
-                     yend = "variance")) +
-    geom_point() +
-    coord_flip() +
-    labs(title = "Variances of target averages for unique variable values",
-         y = "variance",
-         x = "variable")
-  print(p)
 }

@@ -1,12 +1,20 @@
+#' Plotting function for evaluating feature combinations by concatenation
+#'
+#' @export
+#'
 #' @import data.table
 #' @import purrr
 #' @import ggplot2
 #' @import forcats
 #' @import magrittr
 #' @import gtools
+#'
+#' @param data abc
+#' @param target_var abc
+#' @param top_n abc
 
 
-plot_twoway_interactions <- function(data, target_var, top_n = 10){
+plot_rank_combinations <- function(data, target_var, top_n = 10){
 
   `.` <- NULL
   name <- NULL
@@ -18,9 +26,6 @@ plot_twoway_interactions <- function(data, target_var, top_n = 10){
   highlight <- NULL
   var <- NULL
   cov <- NULL
-
-
-
 
   if(class(data[[target_var]]) == "factor"){
     f <- data[[target_var]]

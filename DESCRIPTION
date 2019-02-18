@@ -22,4 +22,9 @@ Imports:
     future,
     furrr,
     glue,
-    ggrepel
+    ggrepel,
+    caret,
+    stats,
+    dplyr,
+    ggridges,
+    tidyr

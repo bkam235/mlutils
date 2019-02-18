@@ -5,9 +5,9 @@ context("Plot two-way interactions")
 dt_iris <- as.data.table(iris)
 dt_iris[, Species := as.numeric(Species)]
 
-p <- plot_twoway_interactions(data = dt_iris,
-                         target_var = "Species",
-                         top_n = 5)
+p <- plot_rank_combinations(data = dt_iris,
+                     target_var = "Species",
+                     top_n = 5)
 
 test_that("Target covariance calculation works", {
   check <- round(p$results$covariance, digits = 7) == c(-0.2893403, -0.2892166,  0.5230585,  0.6357173,  0.5211915, -0.2202442)

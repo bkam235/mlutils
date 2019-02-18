@@ -1,11 +1,10 @@
-context("Plot single variances")
-# library(data.table)
+context("Plot signal")
 
 #' @import data.table
 
 dt_iris <- as.data.table(iris)
 dt_iris[, Species := as.numeric(Species)]
-p <- plot_single_variances(dt_iris, target_var = "Species")
+p <- plot_signal(dt_iris, target_var = "Species")
 
 test_that("Target average variance calculation works", {
   check <- round(p$data$variance, digits = 7) == c(0.6395973, 0.6395414, 0.4832801, 0.2156632)
