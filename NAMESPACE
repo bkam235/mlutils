@@ -2,6 +2,7 @@
 
 export("%>%")
 export(combine_concatenation)
+export(combine_grouping)
 export(encode_frequency)
 export(plot_feature_distributions)
 export(plot_noise_feature)
