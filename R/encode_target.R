@@ -46,14 +46,17 @@ encode_target <- function(data,
   }
 
   if(is.null(val_data) == FALSE){
-    mean_target <- data[, list(t_mean = mean(get(target_var)), n = .N), by = eval(var)]
-    t_mean_global <- data[, mean(get(target_var))]
-    mean_target[, t_mean_global := t_mean_global]
-    mean_target[, encoding := (t_mean * n + t_mean_global * alpha) / (n + alpha)]
+    var <- NULL
+    for(var in vars_to_encode){
+      mean_target <- data[, list(t_mean = mean(get(target_var)), n = .N), by = eval(var)]
+      t_mean_global <- data[, mean(get(target_var))]
+      mean_target[, t_mean_global := t_mean_global]
+      mean_target[, encoding := (t_mean * n + t_mean_global * alpha) / (n + alpha)]
 
-    val_data[, eval(glue::glue("{var}_tmean"))] <- mean_target$encoding[match(val_data[[var]], mean_target[[var]])]
+      val_data[, eval(glue::glue("{var}_tmean"))] <- mean_target$encoding[match(val_data[[var]], mean_target[[var]])]
 
-    val_data[is.na(get(glue::glue("{var}_tmean"))), eval(glue::glue("{var}_tmean"))] <- mean(mean_target$encoding)
+      val_data[is.na(get(glue::glue("{var}_tmean"))), eval(glue::glue("{var}_tmean"))] <- mean(mean_target$encoding)
+    }
 
     data[[target_var]] <- NULL
     data[, (vars_to_encode) := NULL]
