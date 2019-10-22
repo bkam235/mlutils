@@ -88,6 +88,7 @@ add_cv_splits <- function(p, train_data, k){
 
 fitting <- function(data, target, ...){ # ... specify hyperparameters
   target <- as_name(enquo(target)) # works if target is name or symbol
+  if(is.null(data)) stop("Training data not specified")
   if(!target %in% colnames(data)) stop("Target not in data")
 
   dtrain <- xgb.DMatrix(data.matrix(data[-match(target, colnames(data))]),
@@ -158,10 +159,11 @@ add_validation_fun <- function(p, fun){
 #TODO check if p has all necessary elements
 #TODO add all p elements as parameters, set defaults for convenience
 
-cv_eval_params <- function(p, ...){
+do_cv <- function(p, train_data = train_data, ...){
+  train_data <- as_name(enquo(train_data))
   fun <- function(train_idx, val_idx){
-    cv_model <- p$fitting_fun(p$train_data[train_idx, ], ...)
-    result <- p$validation_fun(p$train_data[val_idx, ], cv_model)
+    cv_model <- p$fitting_fun(p[[train_data]][train_idx, ], ...)
+    result <- p$validation_fun(p[[train_data]][val_idx, ], cv_model)
     return(result)
   }
 
@@ -171,7 +173,7 @@ cv_eval_params <- function(p, ...){
   return(p)
 }
 
-# cv <- cv_eval_params(p, nrounds = 30, gamma = 2, eta = 0.1)
+# cv <- do_cv(p, nrounds = 30, gamma = 2, eta = 0.1)
 # str(cv)
 
 # main pipeline -----------------------------------------------------------
@@ -182,6 +184,6 @@ p <- data %>%
   add_cv_splits(train_data, 5) %>%
   add_fitting_fun(fitting, Survived) %>%
   add_validation_fun(validation) %>%
-  cv_eval_params(nrounds = 30, gamma = 2, eta = 0.1)
+  do_cv(nrounds = 30, gamma = 2, eta = 0.1)
 
 str(p)
