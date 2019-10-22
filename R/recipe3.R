@@ -145,7 +145,7 @@ validation <- function(val_data, model){
   pred <- predict(model, dval)
   obs <- val_data[, -feature_cols]
   auc <- MLmetrics::AUC(pred, obs)
-  return(auc)
+  return(list(score = auc, pred = pred))
 }
 
 #TODO check that val fun has the right arguments
@@ -167,14 +167,56 @@ do_cv <- function(p, train_data = train_data, ...){
     return(result)
   }
 
-  cv_scores <- pmap_dbl(.l = list(train_idx = p$cv_train_idx, val_idx = p$cv_val_idx), .f = fun)
-  cv_score_mean <- mean(cv_scores)
+  cv_scores <- pmap(.l = list(train_idx = p$cv_train_idx, val_idx = p$cv_val_idx), .f = fun)
+  cv_score_mean <- mean(flatten_dbl(pluck(transpose(cv_scores), "score")))
   p$cv_result <- list(cv_score_mean = cv_score_mean, params = list(...))
-  return(p)
+  return(p$cv_result)
 }
 
 # cv <- do_cv(p, nrounds = 30, gamma = 2, eta = 0.1)
 # str(cv)
+
+
+# grid search -------------------------------------------------------------
+
+grid <- expand.grid(
+  nrounds = c(10, 20),
+  eta = c(0.1, 0.2),
+  gamma = c(1, 2)
+)
+
+#TODO remove attributes for res_tbl
+
+do_gridsearch <- function(p, train_data = train_data, grid, fraction = 1){
+  if(fraction <= 0 | fraction > 1){stop("fraction is not in (0, 1]")}
+
+  grid_sample <- dplyr::sample_frac(grid, fraction)
+  grid_list <- map(c(1:nrow(grid_sample)), function(x){as.list(grid_sample[x, ])})
+
+  res <- map(grid_list, function(x) do.call(do_cv, append(x, list(p = p))))
+  res_tbl <- grid_sample
+  res_tbl$cv_score_mean <- flatten_dbl(transpose(res)$cv_score_mean)
+  p$gridsearch_result <- res_tbl
+  return(p)
+}
+
+
+# bayesian optimization ---------------------------------------------------
+
+bounds <- list(
+  nrounds = c(10L, 20L),
+  eta = c(0.1, 0.2),
+  gamma = c(1, 2)
+)
+
+#TODO check that bounds is of type list
+
+# do_bayesian_optim <- function(p, train_data = train_data, bounds){
+#
+#
+#
+#
+# }
 
 # main pipeline -----------------------------------------------------------
 
@@ -184,6 +226,7 @@ p <- data %>%
   add_cv_splits(train_data, 5) %>%
   add_fitting_fun(fitting, Survived) %>%
   add_validation_fun(validation) %>%
-  do_cv(nrounds = 30, gamma = 2, eta = 0.1)
+  do_gridsearch(grid = grid, fraction = 0.5)
 
 str(p)
+
