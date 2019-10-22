@@ -106,6 +106,12 @@ fitting <- function(data, target, ...){ # ... specify hyperparameters
 
 add_fitting_fun <- function(p, fun, target){
 
+  # check if fun has arguments data, target and ...
+  check_param <- any(!c("data", "target") %in% names(formals(fitting)))
+  if(check_param) stop("function should have parameters: data, target")
+  check_dots <- !"..." %in% names(formals(fitting))
+  if(check_dots) warning("function doesn't have ... for hyperparam tuning")
+
   target <- as_name(enquo(target)) # works if target is name or symbol
 
   # utility function to set default args for arbitrary function
@@ -125,26 +131,48 @@ add_fitting_fun <- function(p, fun, target){
   return(p)
 }
 
+#TODO check that fitting fun returns model
 
-# evaluation --------------------------------------------------------------
+# validation --------------------------------------------------------------
 
-#TODO
+# model = p$fitting_fun(p$train_data[p$cv_train_idx[[1]], ], eta = 0.2, nrounds = 10, gamma = 2)
+# val_data = p$train_data[p$cv_val_idx[[1]], ]
 
+validation <- function(val_data, model){
+  feature_cols <- match(model$feature_names, colnames(val_data))
+  dval <- xgb.DMatrix(data.matrix(val_data[, feature_cols]))
+  pred <- predict(model, dval)
+  obs <- val_data[, -feature_cols]
+  auc <- MLmetrics::AUC(pred, obs)
+  return(auc)
+}
+
+#TODO check that val fun has the right arguments
+add_validation_fun <- function(p, fun){
+  p$validation_fun <- fun
+  return(p)
+}
 
 # apply fitting to cv -----------------------------------------------------
 
+#TODO check if p has all necessary elements
+#TODO add all p elements as parameters, set defaults for convenience
+
 cv_eval_params <- function(p, ...){
-  fun <- function(idx){
-    p$fitting_fun(p$train_data[idx, ], ...)
+  fun <- function(train_idx, val_idx){
+    cv_model <- p$fitting_fun(p$train_data[train_idx, ], ...)
+    result <- p$validation_fun(p$train_data[val_idx, ], cv_model)
+    return(result)
   }
 
-  map(p$cv_train_idx, fun)
+  cv_scores <- pmap_dbl(.l = list(train_idx = p$cv_train_idx, val_idx = p$cv_val_idx), .f = fun)
+  cv_score_mean <- mean(cv_scores)
+  p$cv_result <- list(cv_score_mean = cv_score_mean, params = list(...))
+  return(p)
 }
 
-# cv <- cv_eval_params(p, nrounds = 10, gamma = 2)
+# cv <- cv_eval_params(p, nrounds = 30, gamma = 2, eta = 0.1)
 # str(cv)
-
-#TODO what's the best way to deal with the target variable?
 
 # main pipeline -----------------------------------------------------------
 
@@ -153,6 +181,7 @@ p <- data %>%
   add_train_test_split(data) %>%
   add_cv_splits(train_data, 5) %>%
   add_fitting_fun(fitting, Survived) %>%
-  cv_eval_params(nrounds = 10, gamma = 2)
+  add_validation_fun(validation) %>%
+  cv_eval_params(nrounds = 30, gamma = 2, eta = 0.1)
 
 str(p)
